@@ -6,6 +6,14 @@
 
     (memory (export "memory") 1)
 
+    (table (export "table") 4 funcref)
+    ;; Rules
+    (elem (i32.const 0) func $b3s23)
+    (elem (i32.const 1) func $b1s012345678)
+    ;; Neighborhoods
+    (elem (i32.const 2) func $Moore)
+    (elem (i32.const 3) func $VonNeumann)
+
     (global $cols (mut i32) (i32.const 0))
     (global $rows (mut i32) (i32.const 0))
     (global $frameSize (mut i32) (i32.const 0))
@@ -13,19 +21,25 @@
     ;; frame1 (frameSize, frameSize*2]
     (global $frame (mut i32) (i32.const 0))
     (global $output (mut i32) (i32.const 0))
- 
-    (type $neighborhood (func
+    (global $rule (mut i32) (i32.const 0))
+    (global $neighborhood (mut i32) (i32.const 0))
+
+    (type $neighborhoodType (func
         (param $upLeft i32) (param $up i32) (param $upRight i32)
         (param $right i32) (param $downRight i32) (param $down i32)
         (param $downLeft i32) (param $left i32)
         (result i32)
     ))
 
-    (type $rule (func (param $self i32) (param $neigbours i32) (result i32)))
+    (type $ruleType (func (param $self i32) (param $neigbours i32) (result i32)))
 
-    (func (export "init") (param $cols i32) (param $rows i32)
+    (func (export "init")
+        (param $cols i32) (param $rows i32)
+        (param $rule i32) (param $neighborhood i32)
         (global.set $cols (local.get $cols))
         (global.set $rows (local.get $rows))
+        (global.set $rule (local.get $rule))
+        (global.set $neighborhood (local.get $neighborhood))
         (global.set $frameSize (i32.mul (local.get $cols) (local.get $rows)))
         (global.set $frame (i32.const 0))
         (global.set $output (i32.mul (global.get $frameSize) (i32.const 2)))
@@ -193,6 +207,7 @@
             (i32.add (local.get $row) (i32.const 1))
         )
     )
+
     (func (export "seedGlider")
         (call $raise (i32.const 1) (i32.const 0))
         (call $raise (i32.const 2) (i32.const 1))
@@ -200,6 +215,14 @@
         (call $raise (i32.const 1) (i32.const 2))
         (call $raise (i32.const 2) (i32.const 2))
     )
+
+    (func (export "seedPoint")
+        (call $raise
+            (i32.div_s (global.get $cols) (i32.const 2))
+            (i32.div_s (global.get $rows) (i32.const 2))
+        )
+    )
+
     (func (export "seedRandom")
         (local $end i32)
         (local $off i32)
@@ -234,6 +257,20 @@
         )
     )
 
+    ;; No death
+    (func $b1s012345678 (export "b1s012345678")
+        ;; $rule interface
+        (param $self i32) (param $neigbours i32) (result i32)
+        (if (result i32) (local.get $self)
+            (then
+                (i32.const 1)
+            )
+            (else
+                (i32.eq (local.get $neigbours) (i32.const 1))
+            )
+        )
+    )
+
     (func $Moore (export "Moore")
         ;; $neighborhood interface
         (param $upLeft i32) (param $up i32) (param $upRight i32)
@@ -251,6 +288,21 @@
         (local.get $left)
 
         (i32.add) (i32.add) (i32.add) (i32.add)
+        (i32.add) (i32.add) (i32.add)
+    )
+
+    (func $VonNeumann (export "VonNeumann")
+        ;; $neighborhood interface
+        (param $upLeft i32) (param $up i32) (param $upRight i32)
+        (param $right i32) (param $downRight i32) (param $down i32)
+        (param $downLeft i32) (param $left i32)
+        (result i32)
+
+        (local.get $up)
+        (local.get $right)
+        (local.get $down)
+        (local.get $left)
+
         (i32.add) (i32.add) (i32.add)
     )
 
@@ -297,7 +349,7 @@
 
     (func $getNeigbours (export "getNeigbours")
         (param $col i32) (param $row i32) (result i32)
-        (call $Moore
+        (call_indirect (type $neighborhoodType)
             (call $getCell 
                 (i32.add (local.get $col) (i32.const -1))
                 (i32.add (local.get $row) (i32.const -1))
@@ -338,6 +390,7 @@
                 (i32.add (local.get $row) (i32.const 0))
                 (global.get $frame)
             )
+            (global.get $neighborhood)
         )
     )
 
@@ -357,13 +410,14 @@
                 (call $setCell
                     (local.get $col)
                     (local.get $row)
-                    (call $b3s23
+                    (call_indirect (type $ruleType)
                         (call $getCell
                             (local.get $col)
                             (local.get $row)
                             (global.get $frame)
                         )
                         (call $getNeigbours (local.get $col) (local.get $row))
+                        (global.get $rule)
                     )
                     (local.get $next)
                 )
