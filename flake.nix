@@ -27,7 +27,7 @@
         buildInputs = [
           pkgs.wasmer
           pkgs.wabt
-          pkgs.nodejs
+          pkgs.nodejs_23
         ];
       };
     });
