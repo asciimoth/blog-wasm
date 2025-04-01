@@ -36,19 +36,21 @@ const compile = async (file) => {
 
 const load = async (file, imports = {}) => {
     let mod = undefined;
-    imports.debugPrint = (f, t) => {
+    let debugs = {};
+    debugs.print = (f, t) => {
         debugPrint(mod.instance.exports.memory, f, t);
     };
-    imports.debugPrintI32 = log;
-    imports.debugPrintI64 = log;
-    imports.debugPrintF32 = log;
-    imports.debugPrintF64 = log;
-    imports.debugClear = console.clear;
-    imports.debugSleep = sleepSync;
-    imports.debugRand = Math.random;
+    debugs.printI32 = log;
+    debugs.printI32 = log;
+    debugs.printI64 = log;
+    debugs.printF32 = log;
+    debugs.printF64 = log;
+    debugs.clear = console.clear;
+    debugs.sleep = sleepSync;
+    debugs.rand = Math.random;
     const compiled = await compile(file);
     mod = await WebAssembly.instantiate(
-        fs.readFileSync(compiled), {import: imports}
+        fs.readFileSync(compiled), {imports: imports, debug: debugs}
     );
     return mod.instance.exports
 }

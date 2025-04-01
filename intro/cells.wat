@@ -1,8 +1,8 @@
 (module
-    (import "import" "debugPrint" (func $debugPrint (param i32 i32)))
-    (import "import" "debugClear" (func $debugClear))
-    (import "import" "debugSleep" (func $debugSleep (param i32)))
-    (import "import" "debugRand" (func $debugRand (result f64)))
+    (import "debug" "print" (func $debugPrint (param i32 i32)))
+    (import "debug" "clear" (func $debugClear))
+    (import "debug" "sleep" (func $debugSleep (param i32)))
+    (import "debug" "rand" (func $debugRand (result f64)))
 
     (memory (export "memory") 1)
 
